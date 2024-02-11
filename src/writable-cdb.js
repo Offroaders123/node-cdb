@@ -8,7 +8,7 @@ var events = require('events'),
     TABLE_SIZE = 256;
 
 // Writable CDB definition
-var writable = module.exports = function(/** @type {string} */ file) {
+var writable = function(/** @type {string} */ file) {
     this.file = file;
     this.filePosition = 0;
 
@@ -18,6 +18,8 @@ var writable = module.exports = function(/** @type {string} */ file) {
     this.recordStream = /** @type {fs.WriteStream | null} */ (null);
     this.hashtableStream = /** @type {fs.WriteStream | null} */ (null);
 };
+
+module.exports = writable;
 
 // extend EventEmitter for emit()
 util.inherits(writable, events.EventEmitter);

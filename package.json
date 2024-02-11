@@ -3,7 +3,9 @@
   "version": "2.0.4",
   "description": "A cdb implementation for node.js",
   "author": "Eric Norris",
-  "main": "./src/index.js",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/ericnorris/node-cdb.git"
@@ -14,6 +16,8 @@
     "vows": "^0.8.0"
   },
   "scripts": {
+    "build": "tsc --project ./tsconfig.build.json",
+    "dev": "tsc --watch",
     "test": "vows --spec"
   },
   "keywords": [

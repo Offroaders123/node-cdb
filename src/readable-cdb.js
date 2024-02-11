@@ -5,13 +5,15 @@ var fs = require('fs'),
     HEADER_SIZE = 2048,
     TABLE_SIZE  = 256;
 
-var readable = module.exports = function(/** @type {string} */ file) {
+var readable = function(/** @type {string} */ file) {
     this.file = file;
     this.header = new Array(TABLE_SIZE);
 
     this.fd = null;
     this.bookmark = /** @type {((callback: (error: Error | null, buffer?: Buffer | null) => void) => void) | null} */ (null);
 };
+
+module.exports = readable;
 
 readable.prototype.open = function(/** @type {(error: NodeJS.ErrnoException, readable?: typeof this) => void} */ callback) {
     var self = this;
