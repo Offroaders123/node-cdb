@@ -3,6 +3,7 @@
   "version": "2.0.4",
   "description": "A cdb implementation for node.js",
   "author": "Eric Norris",
+  "main": "./src/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/ericnorris/node-cdb.git"
