@@ -5,19 +5,23 @@ var fs = require('fs'),
     HEADER_SIZE = 2048,
     TABLE_SIZE  = 256;
 
-var readable = module.exports = function(file) {
+var readable = module.exports = function(/** @type {string} */ file) {
     this.file = file;
     this.header = new Array(TABLE_SIZE);
 
     this.fd = null;
-    this.bookmark = null;
+    this.bookmark = /** @type {((callback: (error: Error | null, buffer?: Buffer | null) => void) => void) | null} */ (null);
 };
 
-readable.prototype.open = function(callback) {
+readable.prototype.open = function(/** @type {(error: NodeJS.ErrnoException, readable?: typeof this) => void} */ callback) {
     var self = this;
 
     fs.open(this.file, 'r', readHeader);
 
+    /**
+     * @param {NodeJS.ErrnoException | null} err
+     * @param {number} fd
+     */
     function readHeader(err, fd) {
         if (err) {
             return callback(err);
@@ -27,7 +31,12 @@ readable.prototype.open = function(callback) {
         fs.read(fd, new Buffer(HEADER_SIZE), 0, HEADER_SIZE, 0, parseHeader);
     }
 
-    function parseHeader(err, bytesRead, buffer) {
+    /**
+     * @param {NodeJS.ErrnoException | null} err
+     * @param {number} _bytesRead
+     * @param {Buffer} buffer
+     */
+    function parseHeader(err, _bytesRead, buffer) {
         if (err) {
             return callback(err);
         }
@@ -51,7 +60,7 @@ readable.prototype.open = function(callback) {
     }
 };
 
-readable.prototype.get = function(key, offset, callback) {
+readable.prototype.get = function(/** @type {string} */ key, /** @type {((error: Error | null, buffer?: Buffer | null) => void) | number} */ offset, /** @type {((err: Error | null, buffer?: Buffer | null) => void) | undefined} */ callback) {
     var hash = _.cdbHash(key),
         hashtableIndex = hash & 255,
         hashtable = this.header[hashtableIndex],
@@ -60,7 +69,7 @@ readable.prototype.get = function(key, offset, callback) {
         slot = (hash >>> 8) % slotCount,
         trueKeyLength = Buffer.byteLength(key),
         self = this,
-        hashPosition, recordHash, recordPosition, keyLength, dataLength;
+        hashPosition, recordHash, recordPosition = 0, keyLength = 0, dataLength = 0;
 
     if (typeof(offset) == 'function') {
         callback = offset;
@@ -73,13 +82,21 @@ readable.prototype.get = function(key, offset, callback) {
 
     readSlot(slot);
 
+    /**
+     * @param {number} slot
+     */
     function readSlot(slot) {
         hashPosition = position + ((slot % slotCount) * 8);
 
         fs.read(self.fd, new Buffer(8), 0, 8, hashPosition, checkHash);
     }
 
-    function checkHash(err, bytesRead, buffer) {
+    /**
+     * @param {Error} err
+     * @param {number} _bytesRead
+     * @param {Buffer} buffer
+    */
+    function checkHash(err, _bytesRead, buffer) {
         if (err) {
             return callback(err);
         }
@@ -96,7 +113,12 @@ readable.prototype.get = function(key, offset, callback) {
         }
     }
 
-    function readKey(err, bytesRead, buffer) {
+    /**
+     * @param {Error} err
+     * @param {number} _bytesRead
+     * @param {Buffer} buffer
+     */
+    function readKey(err, _bytesRead, buffer) {
         if (err) {
             return callback(err);
         }
@@ -114,7 +136,12 @@ readable.prototype.get = function(key, offset, callback) {
             recordPosition + 8, checkKey);
     }
 
-    function checkKey(err, bytesRead, buffer) {
+    /**
+     * @param {Error} err
+     * @param {number} _bytesRead
+     * @param {Buffer} buffer
+     */
+    function checkKey(err, _bytesRead, buffer) {
         if (err) {
             return callback(err);
         }
@@ -123,14 +150,19 @@ readable.prototype.get = function(key, offset, callback) {
             fs.read(self.fd, new Buffer(dataLength), 0, dataLength,
                 recordPosition + 8 + keyLength, returnData);
         } else if (offset !== 0) {
-            offset--;
+            /** @type {number} */ (offset)--;
             readSlot(++slot);
         } else {
             readSlot(++slot);
         }
     }
 
-    function returnData(err, bytesRead, buffer) {
+    /**
+     * @param {Error} err
+     * @param {number} _bytesRead
+     * @param {Buffer} buffer
+     */
+    function returnData(err, _bytesRead, buffer) {
         // Fill out bookmark information so getNext() will work
         self.bookmark = function(newCallback) {
             callback = newCallback;
@@ -141,12 +173,12 @@ readable.prototype.get = function(key, offset, callback) {
     }
 };
 
-readable.prototype.getNext = function(callback) {
+readable.prototype.getNext = function(/** @type {(error: Error | null, buffer?: Buffer | null) => void} */ callback) {
     if (this.bookmark) {
         this.bookmark(callback);
     }
 };
 
-readable.prototype.close = function(callback) {
+readable.prototype.close = function(/** @type {fs.NoParamCallback} */ callback) {
     fs.close(this.fd, callback);
 };

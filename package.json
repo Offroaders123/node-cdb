@@ -8,6 +8,8 @@
     "url": "https://github.com/ericnorris/node-cdb.git"
   },
   "devDependencies": {
+    "@types/node": "^20.11.17",
+    "typescript": "^5.3.3",
     "vows": "^0.8.0"
   },
   "scripts": {

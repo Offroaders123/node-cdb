@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 // === Setup ===
 var writable = require('../src/writable-cdb'),
     readable = require('../src/readable-cdb'),

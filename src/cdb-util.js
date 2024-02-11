@@ -2,7 +2,7 @@
 
 var _ = module.exports = {};
 
-_.cdbHash = function hashKey(key) {
+_.cdbHash = function hashKey(/** @type {string} */ key) {
     var hash = 5381,
         length = key.length,
         i;

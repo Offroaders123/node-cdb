@@ -8,24 +8,24 @@ var events = require('events'),
     TABLE_SIZE = 256;
 
 // Writable CDB definition
-var writable = module.exports = function(file) {
+var writable = module.exports = function(/** @type {string} */ file) {
     this.file = file;
     this.filePosition = 0;
 
-    this.header = new Array(TABLE_SIZE);
-    this.hashtables = new Array(TABLE_SIZE);
+    this.header = /** @type {{ position: number; slots: number; }[]} */ (new Array(TABLE_SIZE));
+    this.hashtables = /** @type {{ hash: number; position: number; }[][]} */ (new Array(TABLE_SIZE));
 
-    this.recordStream = null;
-    this.hashtableStream = null;
+    this.recordStream = /** @type {fs.WriteStream | null} */ (null);
+    this.hashtableStream = /** @type {fs.WriteStream | null} */ (null);
 };
 
 // extend EventEmitter for emit()
 util.inherits(writable, events.EventEmitter);
 
-writable.prototype.open = function(cb) {
+writable.prototype.open = function(/** @type {(error: Error | null, writable?: typeof this & events.EventEmitter) => void} */ cb) {
     var recordStream = fs.createWriteStream(this.file, {start: HEADER_SIZE}),
         callback = cb || function() {},
-        self = this;
+        self = /** @type {typeof this & events.EventEmitter} */ (this);
 
     function fileOpened() {
         self.recordStream = recordStream;
@@ -41,6 +41,9 @@ writable.prototype.open = function(cb) {
         callback(null, self);
     }
 
+    /**
+     * @param {Error} err
+     */
     function error(err) {
         recordStream.removeListener('open', fileOpened);
 
@@ -52,7 +55,7 @@ writable.prototype.open = function(cb) {
     recordStream.once('error', error);
 };
 
-writable.prototype.put = function(key, data, callback) {
+writable.prototype.put = function(/** @type {string} */ key, /** @type {string} */ data, /** @type {((error: Error | null | undefined) => void) | undefined} */ callback) {
     var keyLength = Buffer.byteLength(key),
         dataLength = Buffer.byteLength(data),
         record = new Buffer(8 + keyLength + dataLength),
@@ -79,8 +82,8 @@ writable.prototype.put = function(key, data, callback) {
     return okayToWrite;
 };
 
-writable.prototype.close = function(cb) {
-    var self = this,
+writable.prototype.close = function(/** @type {(error?: Error) => void} */ cb) {
+    var self = /** @type {typeof this & events.EventEmitter} */ (this),
         callback = cb || function() {};
 
     this.recordStream.on('finish', openStreamForHashtable);
@@ -96,7 +99,7 @@ writable.prototype.close = function(cb) {
 
     function writeHashtables() {
         var length = self.hashtables.length,
-            i, hashtable, buffer;
+            i = 0, hashtable, buffer;
 
         for (i = 0; i < length; i++) {
             hashtable = self.hashtables[i] || [];
@@ -130,6 +133,9 @@ writable.prototype.close = function(cb) {
         callback();
     }
 
+    /**
+     * @param {Error} err
+     */
     function error(err) {
         self.emit('error', err);
         callback(err);
@@ -138,12 +144,14 @@ writable.prototype.close = function(cb) {
 
 // === Helper functions ===
 
-/*
+/**
  * Returns an allocated buffer containing the binary representation of a CDB
  * hashtable. Hashtables are linearly probed, and use a load factor of 0.5, so
  * the buffer will have 2n slots for n entries.
- *
+ * 
  * Entries are made up of two 32-bit unsigned integers for a total of 8 bytes.
+ * 
+ * @param {{ hash: number; position: number; }[]} hashtable
  */
 function getBufferForHashtable(hashtable) {
     var length = hashtable.length,
@@ -179,6 +187,9 @@ function getBufferForHashtable(hashtable) {
  * Returns an allocated buffer containing the binary representation of a CDB
  * header. The header contains 255 (count, position) pairs representing the
  * number of slots and position of the hashtables.
+ */
+/**
+ * @param {{ position: number; slots: number; }[]} headerTable
  */
 function getBufferForHeader(headerTable) {
     var buffer = new Buffer(HEADER_SIZE),
