@@ -1,4 +1,4 @@
-export const cdbHash = function hashKey(/** @type {string} */ key) {
+export const cdbHash = function hashKey(key: string): number {
     var hash = 5381,
         length = key.length,
         i;

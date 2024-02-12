@@ -4,24 +4,26 @@ var HEADER_SIZE = 2048,
     TABLE_SIZE  = 256;
 
 export class readable {
-constructor(/** @type {string} */ file) {
-    this.file = file;
-    this.header = /** @type {{ position: number; slotCount: number; }[]} */ (new Array(TABLE_SIZE));
 
-    this.fd = /** @type {number | null} */ (null);
-    this.bookmark = /** @type {((callback: (error: Error | null, buffer?: Buffer | null) => void) => void) | null} */ (null);
+file: string;
+header: { position: number; slotCount: number; }[];
+fd: number | null;
+bookmark: ((callback: (error: Error | null, buffer?: Buffer | null) => void) => void) | null;
+
+constructor(file: string) {
+    this.file = file;
+    this.header = new Array(TABLE_SIZE);
+
+    this.fd = null;
+    this.bookmark = null;
 };
 
-open(/** @type {(error: NodeJS.ErrnoException, readable?: typeof this) => void} */ callback) {
+open(callback: (error: NodeJS.ErrnoException, readable?: typeof this) => void): void {
     var self = this;
 
     fs.open(this.file, 'r', readHeader);
 
-    /**
-     * @param {NodeJS.ErrnoException | null} err
-     * @param {number} fd
-     */
-    function readHeader(err, fd) {
+    function readHeader(err: NodeJS.ErrnoException | null, fd: number): void {
         if (err) {
             return callback(err);
         }
@@ -30,12 +32,7 @@ open(/** @type {(error: NodeJS.ErrnoException, readable?: typeof this) => void} 
         fs.read(fd, new Buffer(HEADER_SIZE), 0, HEADER_SIZE, 0, parseHeader);
     }
 
-    /**
-     * @param {NodeJS.ErrnoException | null} err
-     * @param {number} _bytesRead
-     * @param {Buffer} buffer
-     */
-    function parseHeader(err, _bytesRead, buffer) {
+    function parseHeader(err: NodeJS.ErrnoException | null, _bytesRead: number, buffer: Buffer): void {
         if (err) {
             return callback(err);
         }
@@ -59,7 +56,7 @@ open(/** @type {(error: NodeJS.ErrnoException, readable?: typeof this) => void} 
     }
 };
 
-get(/** @type {string} */ key, /** @type {((error: Error | null, buffer?: Buffer | null) => void) | number} */ offset, /** @type {((err: Error | null, buffer?: Buffer | null) => void) | undefined} */ callback) {
+get(key: string, offset: ((error: Error | null, buffer?: Buffer | null) => void) | number, callback: ((err: Error | null, buffer?: Buffer | null) => void) | undefined): void {
     var hash = _.cdbHash(key),
         hashtableIndex = hash & 255,
         hashtable = this.header[hashtableIndex],
@@ -81,21 +78,13 @@ get(/** @type {string} */ key, /** @type {((error: Error | null, buffer?: Buffer
 
     readSlot(slot);
 
-    /**
-     * @param {number} slot
-     */
-    function readSlot(slot) {
+    function readSlot(slot: number): void {
         hashPosition = position + ((slot % slotCount) * 8);
 
         fs.read(self.fd, new Buffer(8), 0, 8, hashPosition, checkHash);
     }
 
-    /**
-     * @param {Error} err
-     * @param {number} _bytesRead
-     * @param {Buffer} buffer
-    */
-    function checkHash(err, _bytesRead, buffer) {
+    function checkHash(err: Error, _bytesRead: number, buffer: Buffer): void {
         if (err) {
             return callback(err);
         }
@@ -112,12 +101,7 @@ get(/** @type {string} */ key, /** @type {((error: Error | null, buffer?: Buffer
         }
     }
 
-    /**
-     * @param {Error} err
-     * @param {number} _bytesRead
-     * @param {Buffer} buffer
-     */
-    function readKey(err, _bytesRead, buffer) {
+    function readKey(err: Error, _bytesRead: number, buffer: Buffer): void {
         if (err) {
             return callback(err);
         }
@@ -135,12 +119,7 @@ get(/** @type {string} */ key, /** @type {((error: Error | null, buffer?: Buffer
             recordPosition + 8, checkKey);
     }
 
-    /**
-     * @param {Error} err
-     * @param {number} _bytesRead
-     * @param {Buffer} buffer
-     */
-    function checkKey(err, _bytesRead, buffer) {
+    function checkKey(err: Error, _bytesRead: number, buffer: Buffer): void {
         if (err) {
             return callback(err);
         }
@@ -149,19 +128,14 @@ get(/** @type {string} */ key, /** @type {((error: Error | null, buffer?: Buffer
             fs.read(self.fd, new Buffer(dataLength), 0, dataLength,
                 recordPosition + 8 + keyLength, returnData);
         } else if (offset !== 0) {
-            /** @type {number} */ (offset)--;
+            (offset as number)--;
             readSlot(++slot);
         } else {
             readSlot(++slot);
         }
     }
 
-    /**
-     * @param {Error} err
-     * @param {number} _bytesRead
-     * @param {Buffer} buffer
-     */
-    function returnData(err, _bytesRead, buffer) {
+    function returnData(err: Error, _bytesRead: number, buffer: Buffer): void {
         // Fill out bookmark information so getNext() will work
         self.bookmark = function(newCallback) {
             callback = newCallback;
@@ -172,13 +146,13 @@ get(/** @type {string} */ key, /** @type {((error: Error | null, buffer?: Buffer
     }
 };
 
-getNext(/** @type {(error: Error | null, buffer?: Buffer | null) => void} */ callback) {
+getNext(callback: (error: Error | null, buffer?: Buffer | null) => void): void {
     if (this.bookmark) {
         this.bookmark(callback);
     }
 };
 
-close(/** @type {fs.NoParamCallback} */ callback) {
+close(callback: fs.NoParamCallback): void {
     fs.close(this.fd, callback);
 };
 }
