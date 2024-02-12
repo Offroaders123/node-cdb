@@ -1,7 +1,5 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "checkJs": true,
     "module": "CommonJS",
     "target": "ESNext",
     "isolatedModules": true,
@@ -14,10 +12,5 @@
     "allowUnreachableCode": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true
-  },
-  "exclude": [
-    "./dist",
-    "./test",
-    "./benchmark"
-  ]
+  }
 }
