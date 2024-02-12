@@ -24,8 +24,8 @@ file: string;
 filePosition: number;
 header: WriteHeader[];
 hashtables: Hashtable[][];
-recordStream: WriteStream | null;
-hashtableStream: WriteStream | null;
+recordStream!: WriteStream;
+hashtableStream!: WriteStream;
 
 constructor(file: string) {
     super();
@@ -34,9 +34,6 @@ constructor(file: string) {
 
     this.header = new Array(TABLE_SIZE);
     this.hashtables = new Array(TABLE_SIZE);
-
-    this.recordStream = null;
-    this.hashtableStream = null;
 };
 
 open(cb: (error: Error | null, writable?: typeof this) => void): void {
@@ -69,7 +66,7 @@ open(cb: (error: Error | null, writable?: typeof this) => void): void {
     recordStream.once('error', error);
 };
 
-put(key: string, data: string, callback: (error: Error) => void): boolean {
+put(key: string, data: string, callback: (error?: Error | null) => void): boolean {
     var keyLength = Buffer.byteLength(key),
         dataLength = Buffer.byteLength(data),
         record = new Buffer(8 + keyLength + dataLength),
@@ -129,7 +126,7 @@ close(cb: (error?: Error) => void): void {
             self.filePosition += buffer.length;
 
             // free the hashtable
-            self.hashtables[i] = null;
+            delete self.hashtables[i];
         }
 
         self.hashtableStream.on('finish', writeHeader);
@@ -167,14 +164,14 @@ function getBufferForHashtable(hashtable: Hashtable[]): Buffer {
     var length = hashtable.length,
         slotCount = length * 2,
         buffer = new Buffer(slotCount * 8),
-        i, hash, position, slot, bufferPosition;
+        i: number, hash: number, position: number, slot: number, bufferPosition: number;
 
     // zero out the buffer
     buffer.fill(0);
 
     for (i = 0; i < length; i++) {
-        hash = hashtable[i].hash;
-        position = hashtable[i].position;
+        hash = hashtable[i]!.hash;
+        position = hashtable[i]!.position;
 
         slot = (hash >>> 8) % slotCount;
         bufferPosition = slot * 8;
@@ -201,11 +198,11 @@ function getBufferForHashtable(hashtable: Hashtable[]): Buffer {
 function getBufferForHeader(headerTable: WriteHeader[]): Buffer {
     var buffer = new Buffer(HEADER_SIZE),
         bufferPosition = 0,
-        i, position, slots;
+        i: number, position: number, slots: number;
 
     for (i = 0; i < TABLE_SIZE; i++) {
-        position = headerTable[i].position;
-        slots = headerTable[i].slots;
+        position = headerTable[i]!.position;
+        slots = headerTable[i]!.slots;
 
         buffer.writeUInt32LE(position, bufferPosition);
         buffer.writeUInt32LE(slots, bufferPosition + 4); // 4 bytes per int

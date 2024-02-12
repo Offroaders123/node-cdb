@@ -10,7 +10,7 @@ export interface ReadHeader {
 }
 
 export interface GetCallback {
-    (error: Error, buffer?: null): void;
+    (error: Error | null, buffer?: null): void;
     (error: Error | null, buffer: Buffer): void;
 }
 
@@ -18,18 +18,17 @@ export class CDBReadable {
 
 file: string;
 header: ReadHeader[];
-fd: number | null;
+fd!: number;
 bookmark: ((callback: GetCallback) => void) | null;
 
 constructor(file: string) {
     this.file = file;
     this.header = new Array(TABLE_SIZE);
 
-    this.fd = null;
     this.bookmark = null;
 };
 
-open(callback: (error: Error, readable?: typeof this) => void): void {
+open(callback: (error: Error | null, readable?: typeof this) => void): void {
     var self = this;
 
     open(this.file, 'r', readHeader);
@@ -72,7 +71,7 @@ get(key: string, offset: number, callback: GetCallback): void;
 get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
     var hash = cdbHash(key),
         hashtableIndex = hash & 255,
-        hashtable = this.header[hashtableIndex],
+        hashtable = this.header[hashtableIndex]!,
         position = hashtable.position,
         slotCount = hashtable.slotCount,
         slot = (hash >>> 8) % slotCount,
@@ -86,7 +85,7 @@ get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
     }
 
     if (slotCount === 0) {
-        return callback(null, null);
+        return callback?.(null, null);
     }
 
     readSlot(slot);
@@ -97,9 +96,9 @@ get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
         read(self.fd, new Buffer(8), 0, 8, hashPosition, checkHash);
     }
 
-    function checkHash(err: Error, _bytesRead: number, buffer: Buffer): void {
+    function checkHash(err: Error | null, _bytesRead: number, buffer: Buffer): void {
         if (err) {
-            return callback(err);
+            return callback?.(err);
         }
 
         recordHash = buffer.readUInt32LE(0);
@@ -108,15 +107,15 @@ get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
         if (recordHash == hash) {
             read(self.fd, new Buffer(8), 0, 8, recordPosition, readKey);
         } else if (recordHash === 0) {
-            callback(null, null);
+            callback?.(null, null);
         } else {
             readSlot(++slot);
         }
     }
 
-    function readKey(err: Error, _bytesRead: number, buffer: Buffer): void {
+    function readKey(err: Error | null, _bytesRead: number, buffer: Buffer): void {
         if (err) {
-            return callback(err);
+            return callback?.(err);
         }
 
         keyLength = buffer.readUInt32LE(0);
@@ -132,9 +131,9 @@ get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
             recordPosition + 8, checkKey);
     }
 
-    function checkKey(err: Error, _bytesRead: number, buffer: Buffer): void {
+    function checkKey(err: Error | null, _bytesRead: number, buffer: Buffer): void {
         if (err) {
-            return callback(err);
+            return callback?.(err);
         }
 
         if (buffer.toString() == key && offset === 0) {
@@ -148,14 +147,14 @@ get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
         }
     }
 
-    function returnData(err: Error, _bytesRead: number, buffer: Buffer): void {
+    function returnData(err: Error | null, _bytesRead: number, buffer: Buffer): void {
         // Fill out bookmark information so getNext() will work
         self.bookmark = function(newCallback) {
             callback = newCallback;
             readSlot(++slot);
         };
 
-        callback(err, buffer);
+        callback?.(err, buffer);
     }
 };
 
