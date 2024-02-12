@@ -1,15 +1,25 @@
-import { open, read, NoParamCallback, close } from 'node:fs';
+import { open, read, close } from 'node:fs';
 import { cdbHash } from './cdb-util.js';
 
 var HEADER_SIZE = 2048,
     TABLE_SIZE  = 256;
 
+export interface ReadHeader {
+    position: number;
+    slotCount: number;
+}
+
+export interface GetCallback {
+    (error: Error, buffer?: null): void;
+    (error: Error | null, buffer: Buffer): void;
+}
+
 export class CDBReadable {
 
 file: string;
-header: { position: number; slotCount: number; }[];
+header: ReadHeader[];
 fd: number | null;
-bookmark: ((callback: (error: Error | null, buffer?: Buffer | null) => void) => void) | null;
+bookmark: ((callback: GetCallback) => void) | null;
 
 constructor(file: string) {
     this.file = file;
@@ -19,12 +29,12 @@ constructor(file: string) {
     this.bookmark = null;
 };
 
-open(callback: (error: NodeJS.ErrnoException, readable?: typeof this) => void): void {
+open(callback: (error: Error, readable?: typeof this) => void): void {
     var self = this;
 
     open(this.file, 'r', readHeader);
 
-    function readHeader(err: NodeJS.ErrnoException | null, fd: number): void {
+    function readHeader(err: Error | null, fd: number): void {
         if (err) {
             return callback(err);
         }
@@ -33,7 +43,7 @@ open(callback: (error: NodeJS.ErrnoException, readable?: typeof this) => void): 
         read(fd, new Buffer(HEADER_SIZE), 0, HEADER_SIZE, 0, parseHeader);
     }
 
-    function parseHeader(err: NodeJS.ErrnoException | null, _bytesRead: number, buffer: Buffer): void {
+    function parseHeader(err: Error | null, _bytesRead: number, buffer: Buffer): void {
         if (err) {
             return callback(err);
         }
@@ -57,7 +67,9 @@ open(callback: (error: NodeJS.ErrnoException, readable?: typeof this) => void): 
     }
 };
 
-get(key: string, offset: ((error: Error | null, buffer?: Buffer | null) => void) | number, callback: ((err: Error | null, buffer?: Buffer | null) => void) | undefined): void {
+get(key: string, offset: GetCallback): void;
+get(key: string, offset: number, callback: GetCallback): void;
+get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
     var hash = cdbHash(key),
         hashtableIndex = hash & 255,
         hashtable = this.header[hashtableIndex],
@@ -147,13 +159,13 @@ get(key: string, offset: ((error: Error | null, buffer?: Buffer | null) => void)
     }
 };
 
-getNext(callback: (error: Error | null, buffer?: Buffer | null) => void): void {
+getNext(callback: GetCallback): void {
     if (this.bookmark) {
         this.bookmark(callback);
     }
 };
 
-close(callback: NoParamCallback): void {
+close(callback: (error: Error | null) => void): void {
     close(this.fd, callback);
 };
 }

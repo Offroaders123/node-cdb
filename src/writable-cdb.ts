@@ -1,17 +1,29 @@
 import { EventEmitter } from 'node:events';
-import { WriteStream, createWriteStream, writeFile } from 'node:fs';
+import { createWriteStream, writeFile } from 'node:fs';
 import { cdbHash } from './cdb-util.js';
+
+import type { WriteStream } from 'node:fs';
 
 var HEADER_SIZE = 2048,
     TABLE_SIZE = 256;
+
+export interface WriteHeader {
+    position: number;
+    slots: number;
+}
+
+export interface Hashtable {
+    hash: number;
+    position: number;
+}
 
 // Writable CDB definition
 export class CDBWritable extends EventEmitter {
 
 file: string;
-filePosition = 0;
-header: { position: number; slots: number; }[];
-hashtables: { hash: number; position: number; }[][];
+filePosition: number;
+header: WriteHeader[];
+hashtables: Hashtable[][];
 recordStream: WriteStream | null;
 hashtableStream: WriteStream | null;
 
@@ -57,7 +69,7 @@ open(cb: (error: Error | null, writable?: typeof this) => void): void {
     recordStream.once('error', error);
 };
 
-put(key: string, data: string, callback: ((error: Error | null | undefined) => void) | undefined): boolean {
+put(key: string, data: string, callback: (error: Error) => void): boolean {
     var keyLength = Buffer.byteLength(key),
         dataLength = Buffer.byteLength(data),
         record = new Buffer(8 + keyLength + dataLength),
@@ -151,7 +163,7 @@ close(cb: (error?: Error) => void): void {
  * 
  * Entries are made up of two 32-bit unsigned integers for a total of 8 bytes.
  */
-function getBufferForHashtable(hashtable: { hash: number; position: number; }[]): Buffer {
+function getBufferForHashtable(hashtable: Hashtable[]): Buffer {
     var length = hashtable.length,
         slotCount = length * 2,
         buffer = new Buffer(slotCount * 8),
@@ -186,7 +198,7 @@ function getBufferForHashtable(hashtable: { hash: number; position: number; }[])
  * header. The header contains 255 (count, position) pairs representing the
  * number of slots and position of the hashtables.
  */
-function getBufferForHeader(headerTable: { position: number; slots: number; }[]): Buffer {
+function getBufferForHeader(headerTable: WriteHeader[]): Buffer {
     var buffer = new Buffer(HEADER_SIZE),
         bufferPosition = 0,
         i, position, slots;
