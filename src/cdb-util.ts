@@ -4,7 +4,7 @@ const uInt32LE = {
   write: (buffer: Buffer, value: number, offset = 0): void => {
     buffer.writeUInt32LE(value, offset);
   },
-};
+} as const;
 
 const uInt64LE = {
   size: 8,
@@ -17,7 +17,7 @@ const uInt64LE = {
     // eslint-disable-next-line no-bitwise
     buffer.writeUInt32LE(Number(bigValue >> 32n), offset + 4);
   },
-};
+} as const;
 
 const uInt64LEBigInt = {
   size: 8,
@@ -29,24 +29,24 @@ const uInt64LEBigInt = {
     // eslint-disable-next-line no-bitwise
     buffer.writeUInt32LE(Number(value >> 32n), offset + 4);
   },
-};
+} as const;
 
-const pointerEncoding = uInt64LE;
-const slotIndexEncoding = uInt64LE;
+export const pointerEncoding = uInt64LE;
+export const slotIndexEncoding = uInt64LE;
 
-const keyLengthEncoding = uInt32LE;
-const dataLengthEncoding = uInt32LE;
+export const keyLengthEncoding = uInt32LE;
+export const dataLengthEncoding = uInt32LE;
 
-const hashEncoding = uInt64LEBigInt;
+export const hashEncoding = uInt64LEBigInt;
 
-const TABLE_SIZE = 256;
-const HEADER_SIZE: number = TABLE_SIZE * (pointerEncoding.size + slotIndexEncoding.size);
-const MAIN_PAIR_SIZE: number = pointerEncoding.size + slotIndexEncoding.size;
-const HASH_PAIR_SIZE: number = hashEncoding.size + pointerEncoding.size;
-const RECORD_HEADER_SIZE: number = keyLengthEncoding.size + dataLengthEncoding.size;
+export const TABLE_SIZE = 256;
+export const HEADER_SIZE: number = TABLE_SIZE * (pointerEncoding.size + slotIndexEncoding.size);
+export const MAIN_PAIR_SIZE: number = pointerEncoding.size + slotIndexEncoding.size;
+export const HASH_PAIR_SIZE: number = hashEncoding.size + pointerEncoding.size;
+export const RECORD_HEADER_SIZE: number = keyLengthEncoding.size + dataLengthEncoding.size;
 
 // hash functions must return a BigInt
-function originalHash(key: Buffer): bigint {
+export function originalHash(key: Buffer): bigint {
   // DJB hash
   const { length } = key;
   let hash = 5381;
@@ -60,7 +60,7 @@ function originalHash(key: Buffer): bigint {
   return BigInt(hash);
 }
 
-function defaultHash(key: Buffer): bigint {
+export function defaultHash(key: Buffer): bigint {
   // Using all of our 8 byte hash in the simplest way possible.
   let paddedKey = key;
   if (key.length < 4) {
@@ -70,18 +70,3 @@ function defaultHash(key: Buffer): bigint {
   // eslint-disable-next-line no-bitwise
   return originalHash(key) + (BigInt(paddedKey.readUInt32LE(0)) << 32n);
 }
-
-export {
-  pointerEncoding,
-  slotIndexEncoding,
-  keyLengthEncoding,
-  dataLengthEncoding,
-  hashEncoding,
-  TABLE_SIZE,
-  HEADER_SIZE,
-  MAIN_PAIR_SIZE,
-  HASH_PAIR_SIZE,
-  RECORD_HEADER_SIZE,
-  originalHash,
-  defaultHash,
-};

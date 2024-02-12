@@ -1,13 +1,13 @@
 // Helpers for reading raw data
 // Should consider separating this file to a new package
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import * as doAsync from 'doasync';
 
 const asyncFs = doAsync(fs);
 
 // Readers should implement the "read" function, and optionally an async open function and an async close function.
 
-class RawDataFileReader {
+export class RawDataFileReader {
   filename: string;
   fd: number | null;
 
@@ -31,7 +31,7 @@ class RawDataFileReader {
   }
 }
 
-class RawDataBufferReader {
+export class RawDataBufferReader {
   buffer: Buffer;
 
   constructor(buffer: Buffer) {
@@ -49,7 +49,7 @@ export interface CustomRawDataReader {
   close?(): Promise<number>;
 }
 
-function castToRawDataReader<T extends CustomRawDataReader>(reader: string | Buffer | T): T {
+export function castToRawDataReader<T extends CustomRawDataReader>(reader: string | Buffer | T): T {
   if (typeof reader === 'string') {
     // @ts-expect-error
     return new RawDataFileReader(reader);
@@ -71,7 +71,7 @@ function quotient(a: number, b: number): number { // floored division
   return (a - (a % b)) / b;
 }
 
-class RawDataReaderCacheWrapper {
+export class RawDataReaderCacheWrapper {
   reader: CustomRawDataReader;
   blockSize: number;
   blocksLimit: number;
@@ -126,10 +126,3 @@ class RawDataReaderCacheWrapper {
     return Buffer.concat(buffers).slice(start - startIndex * this.blockSize, end - startIndex * this.blockSize);
   }
 }
-
-export {
-  castToRawDataReader,
-  RawDataFileReader,
-  RawDataBufferReader,
-  RawDataReaderCacheWrapper
-};

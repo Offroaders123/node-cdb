@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import * as doAsync from 'doasync';
 import {
   pointerEncoding,
@@ -12,7 +12,7 @@ import {
   HASH_PAIR_SIZE,
   RECORD_HEADER_SIZE,
   defaultHash,
-} from './cdb-util';
+} from './cdb-util.js';
 
 const asyncFs = doAsync(fs);
 
@@ -72,7 +72,7 @@ export interface RecordStreamDrainWaiter {
   reject(reason?: any): void;
 }
 
-class Writable {
+export class Writable {
   file: string;
   filePosition: number;
   hash: typeof defaultHash;
@@ -289,5 +289,3 @@ class Writable {
     await asyncFs.writeFile(this.file, buffer, { flag: 'r+' });
   }
 }
-
-export { Writable };

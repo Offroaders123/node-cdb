@@ -1,4 +1,4 @@
-import { castToRawDataReader } from './raw-data-readers';
+import { castToRawDataReader } from './raw-data-readers.js';
 import {
   pointerEncoding,
   slotIndexEncoding,
@@ -11,16 +11,16 @@ import {
   HASH_PAIR_SIZE,
   RECORD_HEADER_SIZE,
   defaultHash,
-} from './cdb-util';
+} from './cdb-util.js';
 
-import type { CustomRawDataReader } from "./raw-data-readers"
+import type { CustomRawDataReader } from './raw-data-readers.js'
 
 export interface ReadHeader {
   position: number;
   slotCount: number;
 }
 
-class Readable {
+export class Readable {
   reader: CustomRawDataReader;
   header: ReadHeader[];
   hash: typeof defaultHash;
@@ -136,5 +136,3 @@ class Readable {
     return null;
   }
 }
-
-export { Readable };

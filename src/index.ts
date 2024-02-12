@@ -1,9 +1,9 @@
 export {
   originalHash,
   defaultHash
-} from './cdb-util'
+} from './cdb-util.js'
 
-export * from './writable-cdb';
-export * from './readable-cdb';
+export * from './writable-cdb.js';
+export * from './readable-cdb.js';
 // The exported functions of raw-data-readers are nested because they are not relevant for the typical user.
-export * as rawDataReaders from './raw-data-readers';
+export * as rawDataReaders from './raw-data-readers.js';
