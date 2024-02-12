@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 // === Setup ===
 var { writable } = require('../dist/writable-cdb'),
     { readable } = require('../dist/readable-cdb'),

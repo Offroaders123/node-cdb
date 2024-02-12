@@ -1,2 +1,2 @@
-export * from './writable-cdb';
-export * from './readable-cdb';
+export * from './writable-cdb.js';
+export * from './readable-cdb.js';

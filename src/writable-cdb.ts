@@ -1,6 +1,6 @@
-import * as events from 'events';
-import * as fs     from 'fs';
-import * as _      from './cdb-util';
+import * as events from 'node:events';
+import * as fs     from 'node:fs';
+import * as _      from './cdb-util.js';
 var HEADER_SIZE = 2048,
     TABLE_SIZE = 256;
 
