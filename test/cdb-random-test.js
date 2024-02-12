@@ -5,8 +5,8 @@
 var vows   = require('vows'),
     assert = require('assert'),
     fs     = require('fs'),
-    writable = require('../dist/writable-cdb'),
-    readable = require('../dist/readable-cdb'),
+    { writable } = require('../dist/writable-cdb'),
+    { readable } = require('../dist/readable-cdb'),
     randomFile = 'test/random';
 
 try {

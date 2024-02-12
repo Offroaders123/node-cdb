@@ -1,13 +1,13 @@
 'use strict';
 
-var events = require('events'),
-    fs     = require('fs'),
-    _      = require('./cdb-util'),
-    HEADER_SIZE = 2048,
+import * as events from 'events';
+import * as fs     from 'fs';
+import * as _      from './cdb-util';
+var HEADER_SIZE = 2048,
     TABLE_SIZE = 256;
 
 // Writable CDB definition
-class writable extends events.EventEmitter {
+export class writable extends events.EventEmitter {
 constructor(/** @type {string} */ file) {
     super();
     this.file = file;
@@ -140,8 +140,6 @@ close(/** @type {(error?: Error) => void} */ cb) {
     }
 };
 }
-
-module.exports = writable;
 
 // === Helper functions ===
 

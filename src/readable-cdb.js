@@ -1,11 +1,11 @@
 'use strict';
 
-var fs = require('fs'),
-    _  = require('./cdb-util'),
-    HEADER_SIZE = 2048,
+import * as fs from 'fs';
+import * as _  from './cdb-util';
+var HEADER_SIZE = 2048,
     TABLE_SIZE  = 256;
 
-class readable {
+export class readable {
 constructor(/** @type {string} */ file) {
     this.file = file;
     this.header = new Array(TABLE_SIZE);
@@ -184,5 +184,3 @@ close(/** @type {fs.NoParamCallback} */ callback) {
     fs.close(this.fd, callback);
 };
 }
-
-module.exports = readable;
