@@ -1,6 +1,5 @@
 // === Setup ===
-var { writable } = require('../dist/writable-cdb'),
-    { readable } = require('../dist/readable-cdb'),
+var { writable, readable } = require('../dist/index.js'),
     fs = require('fs'),
     CDB_FILE = './benchmark.cdb',
     COUNT = 50000,
