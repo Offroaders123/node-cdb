@@ -1,12 +1,14 @@
+// @ts-check
+
 // === Setup ===
 var { writable, readable } = require('../dist/index.js'),
-    fs = require('fs'),
+    fs = require('node:fs'),
     CDB_FILE = './benchmark.cdb',
     COUNT = 50000,
     records = [],
     keyCount = {},
     recordIndex = 0,
-    writeBenchmark, writeCDB, key, data, offset, readCDB;
+    writeBenchmark, readBenchmark, writeCDB, key, data, offset, readCDB;
 
 // Generate records
 for (; recordIndex < COUNT; recordIndex++) {
