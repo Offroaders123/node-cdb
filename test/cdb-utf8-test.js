@@ -1,9 +1,11 @@
+// @ts-check
+
 const vows = require('vows');
 const assert = require('assert');
 const fs = require('fs');
 const toCallback = require('./to-callback');
-const Writable = require('../src/writable-cdb');
-const Readable = require('../src/readable-cdb');
+const Writable = require('../dist/writable-cdb');
+const Readable = require('../dist/readable-cdb');
 
 const tempFile = 'test/utf8.tmp';
 

@@ -3,6 +3,9 @@
   "version": "3.0.0",
   "description": "A cdb implementation for node.js",
   "author": "Oren Zomer",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/ozomer/node-cdb-64.git"
@@ -17,6 +20,8 @@
     "vows": "^0.8.2"
   },
   "scripts": {
+    "build": "tsc --project ./tsconfig.build.json",
+    "dev": "tsc --watch",
     "lint": "eslint ./src/ --ignore-path .gitignore",
     "test": "vows --spec",
     "benchmark": "node benchmark/benchmark.js"
