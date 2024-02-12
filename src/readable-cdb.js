@@ -5,7 +5,8 @@ var fs = require('fs'),
     HEADER_SIZE = 2048,
     TABLE_SIZE  = 256;
 
-var readable = function(/** @type {string} */ file) {
+class readable {
+constructor(/** @type {string} */ file) {
     this.file = file;
     this.header = new Array(TABLE_SIZE);
 
@@ -13,9 +14,7 @@ var readable = function(/** @type {string} */ file) {
     this.bookmark = /** @type {((callback: (error: Error | null, buffer?: Buffer | null) => void) => void) | null} */ (null);
 };
 
-module.exports = readable;
-
-readable.prototype.open = function(/** @type {(error: NodeJS.ErrnoException, readable?: typeof this) => void} */ callback) {
+open(/** @type {(error: NodeJS.ErrnoException, readable?: typeof this) => void} */ callback) {
     var self = this;
 
     fs.open(this.file, 'r', readHeader);
@@ -62,7 +61,7 @@ readable.prototype.open = function(/** @type {(error: NodeJS.ErrnoException, rea
     }
 };
 
-readable.prototype.get = function(/** @type {string} */ key, /** @type {((error: Error | null, buffer?: Buffer | null) => void) | number} */ offset, /** @type {((err: Error | null, buffer?: Buffer | null) => void) | undefined} */ callback) {
+get(/** @type {string} */ key, /** @type {((error: Error | null, buffer?: Buffer | null) => void) | number} */ offset, /** @type {((err: Error | null, buffer?: Buffer | null) => void) | undefined} */ callback) {
     var hash = _.cdbHash(key),
         hashtableIndex = hash & 255,
         hashtable = this.header[hashtableIndex],
@@ -175,12 +174,15 @@ readable.prototype.get = function(/** @type {string} */ key, /** @type {((error:
     }
 };
 
-readable.prototype.getNext = function(/** @type {(error: Error | null, buffer?: Buffer | null) => void} */ callback) {
+getNext(/** @type {(error: Error | null, buffer?: Buffer | null) => void} */ callback) {
     if (this.bookmark) {
         this.bookmark(callback);
     }
 };
 
-readable.prototype.close = function(/** @type {fs.NoParamCallback} */ callback) {
+close(/** @type {fs.NoParamCallback} */ callback) {
     fs.close(this.fd, callback);
 };
+}
+
+module.exports = readable;

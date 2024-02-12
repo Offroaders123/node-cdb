@@ -2,13 +2,14 @@
 
 var events = require('events'),
     fs     = require('fs'),
-    util   = require('util'),
     _      = require('./cdb-util'),
     HEADER_SIZE = 2048,
     TABLE_SIZE = 256;
 
 // Writable CDB definition
-var writable = function(/** @type {string} */ file) {
+class writable extends events.EventEmitter {
+constructor(/** @type {string} */ file) {
+    super();
     this.file = file;
     this.filePosition = 0;
 
@@ -19,15 +20,10 @@ var writable = function(/** @type {string} */ file) {
     this.hashtableStream = /** @type {fs.WriteStream | null} */ (null);
 };
 
-module.exports = writable;
-
-// extend EventEmitter for emit()
-util.inherits(writable, events.EventEmitter);
-
-writable.prototype.open = function(/** @type {(error: Error | null, writable?: typeof this & events.EventEmitter) => void} */ cb) {
+open(/** @type {(error: Error | null, writable?: typeof this) => void} */ cb) {
     var recordStream = fs.createWriteStream(this.file, {start: HEADER_SIZE}),
         callback = cb || function() {},
-        self = /** @type {typeof this & events.EventEmitter} */ (this);
+        self = this;
 
     function fileOpened() {
         self.recordStream = recordStream;
@@ -57,7 +53,7 @@ writable.prototype.open = function(/** @type {(error: Error | null, writable?: t
     recordStream.once('error', error);
 };
 
-writable.prototype.put = function(/** @type {string} */ key, /** @type {string} */ data, /** @type {((error: Error | null | undefined) => void) | undefined} */ callback) {
+put(/** @type {string} */ key, /** @type {string} */ data, /** @type {((error: Error | null | undefined) => void) | undefined} */ callback) {
     var keyLength = Buffer.byteLength(key),
         dataLength = Buffer.byteLength(data),
         record = new Buffer(8 + keyLength + dataLength),
@@ -84,8 +80,8 @@ writable.prototype.put = function(/** @type {string} */ key, /** @type {string} 
     return okayToWrite;
 };
 
-writable.prototype.close = function(/** @type {(error?: Error) => void} */ cb) {
-    var self = /** @type {typeof this & events.EventEmitter} */ (this),
+close(/** @type {(error?: Error) => void} */ cb) {
+    var self = /** @type {typeof this} */ (this),
         callback = cb || function() {};
 
     this.recordStream.on('finish', openStreamForHashtable);
@@ -143,6 +139,9 @@ writable.prototype.close = function(/** @type {(error?: Error) => void} */ cb) {
         callback(err);
     }
 };
+}
+
+module.exports = writable;
 
 // === Helper functions ===
 
