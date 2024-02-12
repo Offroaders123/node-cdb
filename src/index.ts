@@ -1,9 +1,9 @@
-({
-  originalHash: exports.originalHash,
-  defaultHash: exports.defaultHash,
-} = require('./cdb-util'));
+export {
+  originalHash,
+  defaultHash
+} from './cdb-util'
 
-exports.Writable = require('./writable-cdb');
-exports.Readable = require('./readable-cdb');
+export * from './writable-cdb';
+export * from './readable-cdb';
 // The exported functions of raw-data-readers are nested because they are not relevant for the typical user.
-exports.rawDataReaders = require('./raw-data-readers');
+export * as rawDataReaders from './raw-data-readers';

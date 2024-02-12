@@ -4,8 +4,8 @@ const vows = require('vows');
 const assert = require('assert');
 const fs = require('fs');
 const toCallback = require('./to-callback');
-const Writable = require('../dist/writable-cdb');
-const Readable = require('../dist/readable-cdb');
+const { Writable } = require('../dist/writable-cdb');
+const { Readable } = require('../dist/readable-cdb');
 const { RawDataReaderCacheWrapper } = require('../dist/raw-data-readers');
 
 const randomFile = 'test/random.tmp';

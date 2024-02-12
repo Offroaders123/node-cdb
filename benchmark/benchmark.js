@@ -1,9 +1,11 @@
+// @ts-check
+
 // === Setup ===
 const fs = require('fs');
 const toCallback = require('../test/to-callback');
 
-const Writable = require('../src/writable-cdb');
-const Readable = require('../src/readable-cdb');
+const { Writable } = require('../src/writable-cdb');
+const { Readable } = require('../src/readable-cdb');
 const { RawDataReaderCacheWrapper } = require('../src/raw-data-readers');
 
 const pseudoRandom = (() => {

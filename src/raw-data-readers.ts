@@ -1,68 +1,55 @@
 // Helpers for reading raw data
 // Should consider separating this file to a new package
-const fs = require('fs');
-const doAsync = require('doasync');
+import * as fs from 'fs';
+import * as doAsync from 'doasync';
 
 const asyncFs = doAsync(fs);
 
 // Readers should implement the "read" function, and optionally an async open function and an async close function.
 
 class RawDataFileReader {
-  /**
-   * @param {string} filename
-   */
-  constructor(filename) {
+  filename: string;
+  fd: number | null;
+
+  constructor(filename: string) {
     this.filename = filename;
-    this.fd = /** @type {number} */ (null);
+    this.fd = null;
   }
 
-  async open() {
+  async open(): Promise<void> {
     this.fd = await asyncFs.open(this.filename, 'r');
   }
 
-  /**
-   * @param {number} start
-   * @param {number} length
-   * @returns {Promise<Buffer>}
-   */
-  async read(start, length) {
+  async read(start: number, length: number): Promise<Buffer> {
     const self = this;
     const { buffer } = await asyncFs.read(self.fd, Buffer.alloc(length), 0, length, start);
     return buffer;
   }
 
-  async close() {
-    return /** @type {number} */ (asyncFs.close(this.fd));
+  async close(): Promise<number> {
+    return asyncFs.close(this.fd) as number;
   }
 }
 
 class RawDataBufferReader {
-  /**
-   * @param {Buffer} buffer
-   */
-  constructor(buffer) {
+  buffer: Buffer;
+
+  constructor(buffer: Buffer) {
     this.buffer = buffer;
   }
 
-  /**
-   * @param {number} start
-   * @param {number} length
-   */
-  async read(start, length) {
+  async read(start: number, length: number): Promise<Buffer> {
     return this.buffer.slice(start, start + length);
   }
 }
 
-/**
- * @typedef {{ read(start: number, length: number): Promise<Buffer>; open?(): Promise<void>; close?(): Promise<number>; }} CustomRawDataReader
-*/
+export interface CustomRawDataReader {
+  read(start: number, length: number): Promise<Buffer>;
+  open?(): Promise<void>;
+  close?(): Promise<number>;
+}
 
-/**
- * @template {CustomRawDataReader} T
- * @param {string | Buffer | T} reader
- * @returns {T}
- */
-function castToRawDataReader(reader) {
+function castToRawDataReader<T extends CustomRawDataReader>(reader: string | Buffer | T): T {
   if (typeof reader === 'string') {
     // @ts-expect-error
     return new RawDataFileReader(reader);
@@ -80,19 +67,18 @@ function castToRawDataReader(reader) {
   return reader;
 }
 
-/**
- * @param {number} a
- * @param {number} b
- */
-function quotient(a, b) { // floored division
+function quotient(a: number, b: number): number { // floored division
   return (a - (a % b)) / b;
 }
 
 class RawDataReaderCacheWrapper {
-  /**
-   * @param {RawDataFileReader} reader
-   */
-  constructor(reader, { blockSize = 4096, blocksLimit = 2000 } = {}) {
+  reader: RawDataFileReader;
+  blockSize: number;
+  blocksLimit: number;
+  newCache: Map<number, Buffer>;
+  oldCache: Map<number, Buffer>;
+
+  constructor(reader: string | Buffer | RawDataFileReader, { blockSize = 4096, blocksLimit = 2000 } = {}) {
     this.reader = castToRawDataReader(reader);
     this.blockSize = blockSize;
     this.blocksLimit = blocksLimit;
@@ -100,24 +86,21 @@ class RawDataReaderCacheWrapper {
     this.oldCache = new Map();
   }
 
-  async open() {
+  async open(): Promise<void> {
     if (this.reader.open) {
       return this.reader.open();
     }
     return null;
   }
 
-  async close() {
+  async close(): Promise<number> {
     if (this.reader.close) {
       return this.reader.close();
     }
     return null;
   }
 
-  /**
-   * @param {number} index
-   */
-  async readBlock(index) {
+  async readBlock(index: number): Promise<Buffer> {
     const cachedBlock = this.newCache.get(index);
     if (cachedBlock) {
       return cachedBlock;
@@ -135,11 +118,7 @@ class RawDataReaderCacheWrapper {
     return block;
   }
 
-  /**
-   * @param {number} start
-   * @param {number} length
-   */
-  async read(start, length) {
+  async read(start: number, length: number): Promise<Buffer> {
     const startIndex = quotient(start, this.blockSize);
     const end = start + length;
     const endIndex = quotient(end + this.blockSize - 1, this.blockSize);
@@ -148,7 +127,9 @@ class RawDataReaderCacheWrapper {
   }
 }
 
-exports.castToRawDataReader = castToRawDataReader;
-exports.RawDataFileReader = RawDataFileReader;
-exports.RawDataBufferReader = RawDataBufferReader;
-exports.RawDataReaderCacheWrapper = RawDataReaderCacheWrapper;
+export {
+  castToRawDataReader,
+  RawDataFileReader,
+  RawDataBufferReader,
+  RawDataReaderCacheWrapper
+};

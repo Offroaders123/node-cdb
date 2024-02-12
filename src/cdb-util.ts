@@ -1,7 +1,7 @@
 const uInt32LE = {
   size: 4,
-  read: (/** @type {Buffer} */ buffer, offset = 0) => buffer.readUInt32LE(offset),
-  write: (/** @type {Buffer} */ buffer, /** @type {number} */ value, offset = 0) => {
+  read: (buffer: Buffer, offset = 0): number => buffer.readUInt32LE(offset),
+  write: (buffer: Buffer, value: number, offset = 0): void => {
     buffer.writeUInt32LE(value, offset);
   },
 };
@@ -9,8 +9,8 @@ const uInt32LE = {
 const uInt64LE = {
   size: 8,
   // eslint-disable-next-line no-bitwise
-  read: (/** @type {Buffer} */ buffer, offset = 0) => Number(BigInt(buffer.readUInt32LE(offset)) + (BigInt(buffer.readUInt32LE(offset + 4)) << 32n)),
-  write: (/** @type {Buffer} */ buffer, /** @type {number} */ value, offset = 0) => {
+  read: (buffer: Buffer, offset = 0): number => Number(BigInt(buffer.readUInt32LE(offset)) + (BigInt(buffer.readUInt32LE(offset + 4)) << 32n)),
+  write: (buffer: Buffer, value: number, offset = 0): void => {
     const bigValue = BigInt(value);
     // eslint-disable-next-line no-bitwise
     buffer.writeUInt32LE(Number(bigValue & 0xFFFFFFFFn), offset);
@@ -22,8 +22,8 @@ const uInt64LE = {
 const uInt64LEBigInt = {
   size: 8,
   // eslint-disable-next-line no-bitwise
-  read: (/** @type {Buffer} */ buffer, offset = 0) => BigInt(buffer.readUInt32LE(offset)) + (BigInt(buffer.readUInt32LE(offset + 4)) << 32n),
-  write: (/** @type {Buffer} */ buffer, /** @type {bigint} */ value, offset = 0) => {
+  read: (buffer: Buffer, offset = 0): bigint => BigInt(buffer.readUInt32LE(offset)) + (BigInt(buffer.readUInt32LE(offset + 4)) << 32n),
+  write: (buffer: Buffer, value: bigint, offset = 0): void => {
     // eslint-disable-next-line no-bitwise
     buffer.writeUInt32LE(Number(value & 0xFFFFFFFFn), offset);
     // eslint-disable-next-line no-bitwise
@@ -40,16 +40,13 @@ const dataLengthEncoding = uInt32LE;
 const hashEncoding = uInt64LEBigInt;
 
 const TABLE_SIZE = 256;
-const HEADER_SIZE = TABLE_SIZE * (pointerEncoding.size + slotIndexEncoding.size);
-const MAIN_PAIR_SIZE = pointerEncoding.size + slotIndexEncoding.size;
-const HASH_PAIR_SIZE = hashEncoding.size + pointerEncoding.size;
-const RECORD_HEADER_SIZE = keyLengthEncoding.size + dataLengthEncoding.size;
+const HEADER_SIZE: number = TABLE_SIZE * (pointerEncoding.size + slotIndexEncoding.size);
+const MAIN_PAIR_SIZE: number = pointerEncoding.size + slotIndexEncoding.size;
+const HASH_PAIR_SIZE: number = hashEncoding.size + pointerEncoding.size;
+const RECORD_HEADER_SIZE: number = keyLengthEncoding.size + dataLengthEncoding.size;
 
 // hash functions must return a BigInt
-/**
- * @param {Buffer} key
- */
-function originalHash(key) {
+function originalHash(key: Buffer): bigint {
   // DJB hash
   const { length } = key;
   let hash = 5381;
@@ -63,10 +60,7 @@ function originalHash(key) {
   return BigInt(hash);
 }
 
-/**
- * @param {Buffer} key
- */
-function defaultHash(key) {
+function defaultHash(key: Buffer): bigint {
   // Using all of our 8 byte hash in the simplest way possible.
   let paddedKey = key;
   if (key.length < 4) {
@@ -77,7 +71,7 @@ function defaultHash(key) {
   return originalHash(key) + (BigInt(paddedKey.readUInt32LE(0)) << 32n);
 }
 
-module.exports = {
+export {
   pointerEncoding,
   slotIndexEncoding,
   keyLengthEncoding,

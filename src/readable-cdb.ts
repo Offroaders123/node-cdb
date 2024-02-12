@@ -1,5 +1,5 @@
-const { castToRawDataReader } = require('./raw-data-readers');
-const {
+import { CustomRawDataReader, castToRawDataReader } from './raw-data-readers';
+import {
   pointerEncoding,
   slotIndexEncoding,
   keyLengthEncoding,
@@ -11,24 +11,25 @@ const {
   HASH_PAIR_SIZE,
   RECORD_HEADER_SIZE,
   defaultHash,
-} = require('./cdb-util');
+} from './cdb-util';
 
+export interface ReadHeader {
+  position: number;
+  slotCount: number;
+}
 
 class Readable {
-  /**
-   * @param {string | Buffer | import("./raw-data-readers").RawDataReaderCacheWrapper} reader
-   */
-  constructor(reader, hash = defaultHash) {
+  reader: CustomRawDataReader;
+  header: ReadHeader[];
+  hash: typeof defaultHash;
+
+  constructor(reader: string | Buffer | CustomRawDataReader, hash = defaultHash) {
     this.reader = castToRawDataReader(reader);
     this.header = new Array(TABLE_SIZE);
     this.hash = hash;
   }
 
-  /**
-   * @param {number} start
-   * @param {number} length
-   */
-  async readRaw(start, length) {
+  async readRaw(start: number, length: number): Promise<Buffer> {
     const buffer = await this.reader.read(start, length);
     if (buffer.length < length) {
       throw new Error('Unexpected end of buffer or file');
@@ -36,7 +37,7 @@ class Readable {
     return buffer;
   }
 
-  async open() {
+  async open(): Promise<this> {
     if (this.reader.open) {
       await this.reader.open();
     }
@@ -58,10 +59,7 @@ class Readable {
     return this;
   }
 
-  /**
-   * @param {string | Buffer} keyParam
-   */
-  async* getIterator(keyParam, offsetParam = 0) {
+  async* getIterator(keyParam: string | Buffer, offsetParam = 0): AsyncGenerator<Buffer, undefined, void> {
     // console.log(`*********** Readable.get ${key} offset: ${offsetParam}`);
     const key = Buffer.from(keyParam);
 
@@ -125,14 +123,11 @@ class Readable {
     // console.log(`*********** did not find data because all records have been scanned ${slotCount}`);
   }
 
-  /**
-   * @param {string} key
-   */
-  async get(key, offset = 0) {
+  async get(key: string, offset = 0): Promise<Buffer | undefined> {
     return (await this.getIterator(key, offset).next()).value;
   }
 
-  async close() {
+  async close(): Promise<number> {
     if (this.reader.close) {
       return this.reader.close();
     }
@@ -140,4 +135,4 @@ class Readable {
   }
 }
 
-module.exports = Readable;
+export { Readable };

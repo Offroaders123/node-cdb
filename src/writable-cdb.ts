@@ -1,6 +1,6 @@
-const fs = require('fs');
-const doAsync = require('doasync');
-const {
+import * as fs from 'fs';
+import * as doAsync from 'doasync';
+import {
   pointerEncoding,
   slotIndexEncoding,
   keyLengthEncoding,
@@ -12,23 +12,25 @@ const {
   HASH_PAIR_SIZE,
   RECORD_HEADER_SIZE,
   defaultHash,
-} = require('./cdb-util');
+} from './cdb-util';
 
 const asyncFs = doAsync(fs);
 
+export interface Hashtable {
+  hash: bigint;
+  position: number;
+}
+
 // === Helper functions ===
 
-/*
+/**
 * Returns an allocated buffer containing the binary representation of a CDB
 * hashtable. Hashtables are linearly probed, and use a load factor of 0.5, so
 * the buffer will have 2n slots for n entries.
 *
 * Entries are made up of two 32-bit unsigned integers for a total of 8 bytes.
 */
-/**
- * @param {{ hash: bigint; position: number; }[]} hashtable
- */
-function getBufferForHashtable(hashtable) {
+function getBufferForHashtable(hashtable: Hashtable[]): Buffer {
   const { length } = hashtable;
   const slotCount = length * 2;
   const buffer = Buffer.alloc(slotCount * HASH_PAIR_SIZE);
@@ -60,11 +62,30 @@ function getBufferForHashtable(hashtable) {
   return buffer;
 }
 
+export interface WriteHeader {
+  position: number;
+  slots: number;
+}
+
+export interface RecordStreamDrainWaiter {
+  resolve(value: void | PromiseLike<void>): void;
+  reject(reason?: any): void;
+}
+
 class Writable {
-  /**
-   * @param {string} file
-   */
-  constructor(file, hash = defaultHash) {
+  file: string;
+  filePosition: number;
+  hash: typeof defaultHash;
+  header: WriteHeader[];
+  hashtables: Hashtable[][];
+  hashtableStream: fs.WriteStream | null;
+  recordStream: fs.WriteStream | null;
+  recordStreamError: Error | null;
+  _recordStreamErrorSaver;
+  _recordStreamDrainWaiters: Set<RecordStreamDrainWaiter>;
+  _recordStreamDrainCaller;
+
+  constructor(file: string, hash = defaultHash) {
     this.file = file;
     this.filePosition = 0;
     this.hash = hash;
@@ -75,14 +96,14 @@ class Writable {
     this.hashtableStream = null;
     this.recordStream = null;
     this.recordStreamError = null;
-    this._recordStreamErrorSaver = (/** @type {Error} */ err) => {
+    this._recordStreamErrorSaver = (err: Error): void => {
       this.recordStreamError = err;
       const waiters = this._recordStreamDrainWaiters;
       this._recordStreamDrainWaiters = new Set();
       waiters.forEach(({ reject }) => reject(err));
     };
     this._recordStreamDrainWaiters = new Set();
-    this._recordStreamDrainCaller = () => {
+    this._recordStreamDrainCaller = (): void => {
       // listeners should be safe functions
       // for safety
       const waiters = this._recordStreamDrainWaiters;
@@ -91,17 +112,14 @@ class Writable {
     };
   }
 
-  /**
-   * @returns {Promise<this>}
-  */
-  async open() {
+  async open(): Promise<Writable> {
     // console.log(`*********** opening file for writing: ${this.file} at start 0x${HEADER_SIZE.toString(16)}`);
     const recordStream = fs.createWriteStream(this.file, { start: HEADER_SIZE });
 
-    return new Promise((resolve, reject) => {
+    return new Promise<Writable>((resolve, reject): void => {
       let alreadyFinished = false;
 
-      const onceOpen = () => {
+      const onceOpen = (): void => {
         if (alreadyFinished) {
           return;
         }
@@ -114,7 +132,7 @@ class Writable {
         resolve(this);
       };
 
-      const onceError = (/** @type {Error} */ err) => {
+      const onceError = (err: Error): void => {
         if (alreadyFinished) {
           return;
         }
@@ -128,11 +146,7 @@ class Writable {
     });
   }
 
-  /**
-   * @param {string | Buffer} keyParam
-   * @param {string | Buffer} dataParam
-   */
-  async put(keyParam, dataParam) {
+  async put(keyParam: string | Buffer, dataParam: string | Buffer): Promise<void> {
     const key = Buffer.from(keyParam);
     const data = Buffer.from(dataParam);
     if (this.recordStreamError) {
@@ -149,7 +163,7 @@ class Writable {
     data.copy(record, RECORD_HEADER_SIZE + key.length);
 
     // console.log(`*********** writing key ${key} data ${data} record ${record.toString('hex')} to file position 0x${this.filePosition.toString(16)}`);
-    const drainPromise = this.recordStream.write(record) ? null : new Promise((resolve, reject) => {
+    const drainPromise = this.recordStream.write(record) ? null : new Promise<void>((resolve, reject): void => {
       this._recordStreamDrainWaiters.add({ resolve, reject });
       // We don't wait for the entire flush
     });
@@ -173,10 +187,10 @@ class Writable {
     }
   }
 
-  async close() {
-    await new Promise((resolve, reject) => {
+  async close(): Promise<void> {
+    await new Promise<void>((resolve, reject): void => {
       let alreadyFinished = false;
-      const onFinish = () => {
+      const onFinish = (): void => {
         if (alreadyFinished) {
           return;
         }
@@ -184,7 +198,7 @@ class Writable {
         this.recordStream.removeListener('error', onError);
         resolve();
       };
-      const onError = (/** @type {Error} */ err) => {
+      const onError = (err: Error): void => {
         if (alreadyFinished) {
           return;
         }
@@ -204,9 +218,9 @@ class Writable {
     });
     this.recordStream.removeListener('drain', this._recordStreamDrainCaller);
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject): void => {
       let alreadyFinished = false;
-      const onOpen = () => {
+      const onOpen = (): void => {
         if (alreadyFinished) {
           return;
         }
@@ -234,7 +248,7 @@ class Writable {
         this.hashtableStream.once('finish', onFinish);
         this.hashtableStream.end();
       };
-      const onFinish = () => {
+      const onFinish = (): void => {
         if (alreadyFinished) {
           return;
         }
@@ -242,7 +256,7 @@ class Writable {
         this.hashtableStream.removeListener('error', onError);
         resolve();
       };
-      const onError = (/** @type {Error} */ err) => {
+      const onError = (err: Error): void => {
         if (alreadyFinished) {
           return;
         }
@@ -278,4 +292,4 @@ class Writable {
   }
 }
 
-module.exports = Writable;
+export { Writable };
