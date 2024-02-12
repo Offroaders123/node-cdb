@@ -1,4 +1,4 @@
-import { CustomRawDataReader, castToRawDataReader } from './raw-data-readers';
+import { castToRawDataReader } from './raw-data-readers';
 import {
   pointerEncoding,
   slotIndexEncoding,
@@ -12,6 +12,8 @@ import {
   RECORD_HEADER_SIZE,
   defaultHash,
 } from './cdb-util';
+
+import type { CustomRawDataReader } from "./raw-data-readers"
 
 export interface ReadHeader {
   position: number;
@@ -65,7 +67,7 @@ class Readable {
 
     const hash = this.hash(key);
     // eslint-disable-next-line no-bitwise
-    const { position, slotCount } = this.header[Number(hash & 0xFFn)];
+    const { position, slotCount } = this.header[Number(hash & 0xFFn)]!;
     // console.log(`*********** position ${position} slotCount: ${slotCount}`);
 
     let offset = offsetParam;
@@ -127,7 +129,7 @@ class Readable {
     return (await this.getIterator(key, offset).next()).value;
   }
 
-  async close(): Promise<number> {
+  async close(): Promise<number | null> {
     if (this.reader.close) {
       return this.reader.close();
     }

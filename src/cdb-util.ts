@@ -53,7 +53,7 @@ function originalHash(key: Buffer): bigint {
 
   for (let i = 0; i < length; i += 1) {
     // eslint-disable-next-line no-bitwise
-    hash = ((((hash << 5) >>> 0) + hash) ^ key[i]) >>> 0;
+    hash = ((((hash << 5) >>> 0) + hash) ^ key[i]!) >>> 0;
   }
 
   // console.log(`*********** hash is: 0x${hash.toString(16)}`);

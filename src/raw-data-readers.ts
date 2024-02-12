@@ -72,13 +72,13 @@ function quotient(a: number, b: number): number { // floored division
 }
 
 class RawDataReaderCacheWrapper {
-  reader: RawDataFileReader;
+  reader: CustomRawDataReader;
   blockSize: number;
   blocksLimit: number;
   newCache: Map<number, Buffer>;
   oldCache: Map<number, Buffer>;
 
-  constructor(reader: string | Buffer | RawDataFileReader, { blockSize = 4096, blocksLimit = 2000 } = {}) {
+  constructor(reader: string | Buffer | CustomRawDataReader, { blockSize = 4096, blocksLimit = 2000 } = {}) {
     this.reader = castToRawDataReader(reader);
     this.blockSize = blockSize;
     this.blocksLimit = blocksLimit;
@@ -86,14 +86,14 @@ class RawDataReaderCacheWrapper {
     this.oldCache = new Map();
   }
 
-  async open(): Promise<void> {
+  async open(): Promise<void | null> {
     if (this.reader.open) {
       return this.reader.open();
     }
     return null;
   }
 
-  async close(): Promise<number> {
+  async close(): Promise<number | null> {
     if (this.reader.close) {
       return this.reader.close();
     }

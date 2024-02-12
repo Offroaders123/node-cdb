@@ -39,7 +39,7 @@ function getBufferForHashtable(hashtable: Hashtable[]): Buffer {
   buffer.fill(0);
 
   for (let i = 0; i < length; i += 1) {
-    const { hash, position } = hashtable[i];
+    const { hash, position } = hashtable[i]!;
 
     // eslint-disable-next-line no-bitwise
     let slot = Number((hash >> 8n) % BigInt(slotCount));
@@ -78,8 +78,8 @@ class Writable {
   hash: typeof defaultHash;
   header: WriteHeader[];
   hashtables: Hashtable[][];
-  hashtableStream: fs.WriteStream | null;
-  recordStream: fs.WriteStream | null;
+  hashtableStream!: fs.WriteStream;
+  recordStream!: fs.WriteStream;
   recordStreamError: Error | null;
   _recordStreamErrorSaver;
   _recordStreamDrainWaiters: Set<RecordStreamDrainWaiter>;
@@ -93,8 +93,6 @@ class Writable {
     this.header = new Array(TABLE_SIZE);
     this.hashtables = new Array(TABLE_SIZE);
 
-    this.hashtableStream = null;
-    this.recordStream = null;
     this.recordStreamError = null;
     this._recordStreamErrorSaver = (err: Error): void => {
       this.recordStreamError = err;
@@ -243,7 +241,7 @@ class Writable {
           this.filePosition += buffer.length;
 
           // free the hashtable
-          this.hashtables[i] = null;
+          delete this.hashtables[i];
         }
         this.hashtableStream.once('finish', onFinish);
         this.hashtableStream.end();
@@ -281,7 +279,7 @@ class Writable {
     let bufferPosition = 0;
 
     for (let i = 0; i < TABLE_SIZE; i += 1) {
-      const { position, slots } = this.header[i];
+      const { position, slots } = this.header[i]!;
 
       pointerEncoding.write(buffer, position, bufferPosition);
       slotIndexEncoding.write(buffer, slots, bufferPosition + pointerEncoding.size); // 4 bytes per int
