@@ -25,6 +25,9 @@ const asyncFs = doAsync(fs);
 *
 * Entries are made up of two 32-bit unsigned integers for a total of 8 bytes.
 */
+/**
+ * @param {{ hash: bigint; position: number; }[]} hashtable
+ */
 function getBufferForHashtable(hashtable) {
   const { length } = hashtable;
   const slotCount = length * 2;
@@ -58,6 +61,9 @@ function getBufferForHashtable(hashtable) {
 }
 
 class Writable {
+  /**
+   * @param {string} file
+   */
   constructor(file, hash = defaultHash) {
     this.file = file;
     this.filePosition = 0;
@@ -69,7 +75,7 @@ class Writable {
     this.hashtableStream = null;
     this.recordStream = null;
     this.recordStreamError = null;
-    this._recordStreamErrorSaver = (err) => {
+    this._recordStreamErrorSaver = (/** @type {Error} */ err) => {
       this.recordStreamError = err;
       const waiters = this._recordStreamDrainWaiters;
       this._recordStreamDrainWaiters = new Set();
@@ -85,6 +91,9 @@ class Writable {
     };
   }
 
+  /**
+   * @returns {Promise<this>}
+  */
   async open() {
     // console.log(`*********** opening file for writing: ${this.file} at start 0x${HEADER_SIZE.toString(16)}`);
     const recordStream = fs.createWriteStream(this.file, { start: HEADER_SIZE });
@@ -105,7 +114,7 @@ class Writable {
         resolve(this);
       };
 
-      const onceError = (err) => {
+      const onceError = (/** @type {Error} */ err) => {
         if (alreadyFinished) {
           return;
         }
@@ -119,6 +128,10 @@ class Writable {
     });
   }
 
+  /**
+   * @param {string | Buffer} keyParam
+   * @param {string | Buffer} dataParam
+   */
   async put(keyParam, dataParam) {
     const key = Buffer.from(keyParam);
     const data = Buffer.from(dataParam);
@@ -142,10 +155,10 @@ class Writable {
     });
 
 
-    let hashtable = this.hashtables[hashtableIndex];
+    let hashtable = this.hashtables[Number(hashtableIndex)];
     if (!hashtable) {
       hashtable = [];
-      this.hashtables[hashtableIndex] = hashtable;
+      this.hashtables[Number(hashtableIndex)] = hashtable;
     }
 
     hashtable.push({ hash, position: this.filePosition });
@@ -171,7 +184,7 @@ class Writable {
         this.recordStream.removeListener('error', onError);
         resolve();
       };
-      const onError = (err) => {
+      const onError = (/** @type {Error} */ err) => {
         if (alreadyFinished) {
           return;
         }
@@ -229,7 +242,7 @@ class Writable {
         this.hashtableStream.removeListener('error', onError);
         resolve();
       };
-      const onError = (err) => {
+      const onError = (/** @type {Error} */ err) => {
         if (alreadyFinished) {
           return;
         }

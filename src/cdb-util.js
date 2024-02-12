@@ -1,7 +1,7 @@
 const uInt32LE = {
   size: 4,
-  read: (buffer, offset = 0) => buffer.readUInt32LE(offset),
-  write: (buffer, value, offset = 0) => {
+  read: (/** @type {Buffer} */ buffer, offset = 0) => buffer.readUInt32LE(offset),
+  write: (/** @type {Buffer} */ buffer, /** @type {number} */ value, offset = 0) => {
     buffer.writeUInt32LE(value, offset);
   },
 };
@@ -9,8 +9,8 @@ const uInt32LE = {
 const uInt64LE = {
   size: 8,
   // eslint-disable-next-line no-bitwise
-  read: (buffer, offset = 0) => Number(BigInt(buffer.readUInt32LE(offset)) + (BigInt(buffer.readUInt32LE(offset + 4)) << 32n)),
-  write: (buffer, value, offset = 0) => {
+  read: (/** @type {Buffer} */ buffer, offset = 0) => Number(BigInt(buffer.readUInt32LE(offset)) + (BigInt(buffer.readUInt32LE(offset + 4)) << 32n)),
+  write: (/** @type {Buffer} */ buffer, /** @type {number} */ value, offset = 0) => {
     const bigValue = BigInt(value);
     // eslint-disable-next-line no-bitwise
     buffer.writeUInt32LE(Number(bigValue & 0xFFFFFFFFn), offset);
@@ -22,8 +22,8 @@ const uInt64LE = {
 const uInt64LEBigInt = {
   size: 8,
   // eslint-disable-next-line no-bitwise
-  read: (buffer, offset = 0) => BigInt(buffer.readUInt32LE(offset)) + (BigInt(buffer.readUInt32LE(offset + 4)) << 32n),
-  write: (buffer, value, offset = 0) => {
+  read: (/** @type {Buffer} */ buffer, offset = 0) => BigInt(buffer.readUInt32LE(offset)) + (BigInt(buffer.readUInt32LE(offset + 4)) << 32n),
+  write: (/** @type {Buffer} */ buffer, /** @type {bigint} */ value, offset = 0) => {
     // eslint-disable-next-line no-bitwise
     buffer.writeUInt32LE(Number(value & 0xFFFFFFFFn), offset);
     // eslint-disable-next-line no-bitwise
@@ -46,6 +46,9 @@ const HASH_PAIR_SIZE = hashEncoding.size + pointerEncoding.size;
 const RECORD_HEADER_SIZE = keyLengthEncoding.size + dataLengthEncoding.size;
 
 // hash functions must return a BigInt
+/**
+ * @param {Buffer} key
+ */
 function originalHash(key) {
   // DJB hash
   const { length } = key;
@@ -60,6 +63,9 @@ function originalHash(key) {
   return BigInt(hash);
 }
 
+/**
+ * @param {Buffer} key
+ */
 function defaultHash(key) {
   // Using all of our 8 byte hash in the simplest way possible.
   let paddedKey = key;

@@ -15,12 +15,19 @@ const {
 
 
 class Readable {
+  /**
+   * @param {string | Buffer | import("./raw-data-readers").RawDataReaderCacheWrapper} reader
+   */
   constructor(reader, hash = defaultHash) {
     this.reader = castToRawDataReader(reader);
     this.header = new Array(TABLE_SIZE);
     this.hash = hash;
   }
 
+  /**
+   * @param {number} start
+   * @param {number} length
+   */
   async readRaw(start, length) {
     const buffer = await this.reader.read(start, length);
     if (buffer.length < length) {
@@ -51,13 +58,16 @@ class Readable {
     return this;
   }
 
+  /**
+   * @param {string | Buffer} keyParam
+   */
   async* getIterator(keyParam, offsetParam = 0) {
     // console.log(`*********** Readable.get ${key} offset: ${offsetParam}`);
     const key = Buffer.from(keyParam);
 
     const hash = this.hash(key);
     // eslint-disable-next-line no-bitwise
-    const { position, slotCount } = this.header[hash & 0xFFn];
+    const { position, slotCount } = this.header[Number(hash & 0xFFn)];
     // console.log(`*********** position ${position} slotCount: ${slotCount}`);
 
     let offset = offsetParam;
@@ -115,6 +125,9 @@ class Readable {
     // console.log(`*********** did not find data because all records have been scanned ${slotCount}`);
   }
 
+  /**
+   * @param {string} key
+   */
   async get(key, offset = 0) {
     return (await this.getIterator(key, offset).next()).value;
   }
