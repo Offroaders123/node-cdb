@@ -1,18 +1,19 @@
-import * as events from 'node:events';
-import * as fs     from 'node:fs';
-import * as _      from './cdb-util.js';
+import { EventEmitter } from 'node:events';
+import { WriteStream, createWriteStream, writeFile } from 'node:fs';
+import { cdbHash } from './cdb-util.js';
+
 var HEADER_SIZE = 2048,
     TABLE_SIZE = 256;
 
 // Writable CDB definition
-export class writable extends events.EventEmitter {
+export class CDBWritable extends EventEmitter {
 
 file: string;
 filePosition = 0;
 header: { position: number; slots: number; }[];
 hashtables: { hash: number; position: number; }[][];
-recordStream: fs.WriteStream | null;
-hashtableStream: fs.WriteStream | null;
+recordStream: WriteStream | null;
+hashtableStream: WriteStream | null;
 
 constructor(file: string) {
     super();
@@ -27,7 +28,7 @@ constructor(file: string) {
 };
 
 open(cb: (error: Error | null, writable?: typeof this) => void): void {
-    var recordStream = fs.createWriteStream(this.file, {start: HEADER_SIZE}),
+    var recordStream = createWriteStream(this.file, {start: HEADER_SIZE}),
         callback = cb || function() {},
         self = this;
 
@@ -60,7 +61,7 @@ put(key: string, data: string, callback: ((error: Error | null | undefined) => v
     var keyLength = Buffer.byteLength(key),
         dataLength = Buffer.byteLength(data),
         record = new Buffer(8 + keyLength + dataLength),
-        hash = _.cdbHash(key),
+        hash = cdbHash(key),
         hashtableIndex = hash & 255,
         hashtable = this.hashtables[hashtableIndex],
         okayToWrite;
@@ -91,7 +92,7 @@ close(cb: (error?: Error) => void): void {
     this.recordStream.end();
 
     function openStreamForHashtable(): void {
-        self.hashtableStream = fs.createWriteStream(self.file,
+        self.hashtableStream = createWriteStream(self.file,
             {start: self.filePosition, flags: 'r+'});
 
         self.hashtableStream.once('open', writeHashtables);
@@ -126,7 +127,7 @@ close(cb: (error?: Error) => void): void {
     function writeHeader(): void {
         var buffer = getBufferForHeader(self.header);
 
-        fs.writeFile(self.file, buffer, {flag: 'r+'}, finished);
+        writeFile(self.file, buffer, {flag: 'r+'}, finished);
     }
 
     function finished(): void {
