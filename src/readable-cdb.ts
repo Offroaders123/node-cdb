@@ -1,8 +1,8 @@
 import { open, read, close } from 'node:fs';
 import { cdbHash } from './cdb-util.js';
 
-var HEADER_SIZE = 2048,
-    TABLE_SIZE  = 256;
+const HEADER_SIZE = 2048;
+const TABLE_SIZE = 256;
 
 export interface ReadHeader {
     position: number;
@@ -17,19 +17,16 @@ export interface GetCallback {
 export class CDBReadable {
 
 file: string;
-header: ReadHeader[];
+header: ReadHeader[] = Array(TABLE_SIZE);
 fd!: number;
-bookmark: ((callback: GetCallback) => void) | null;
+bookmark?: (callback: GetCallback) => void;
 
 constructor(file: string) {
     this.file = file;
-    this.header = new Array(TABLE_SIZE);
-
-    this.bookmark = null;
 };
 
 open(callback: (error: Error | null, readable?: typeof this) => void): void {
-    var self = this;
+    const self = this;
 
     open(this.file, 'r', readHeader);
 
@@ -39,7 +36,7 @@ open(callback: (error: Error | null, readable?: typeof this) => void): void {
         }
 
         self.fd = fd;
-        read(fd, new Buffer(HEADER_SIZE), 0, HEADER_SIZE, 0, parseHeader);
+        read(fd, Buffer.alloc(HEADER_SIZE), 0, HEADER_SIZE, 0, parseHeader);
     }
 
     function parseHeader(err: Error | null, _bytesRead: number, buffer: Buffer): void {
@@ -47,8 +44,8 @@ open(callback: (error: Error | null, readable?: typeof this) => void): void {
             return callback(err);
         }
 
-        var bufferPosition = 0,
-            i, position, slotCount;
+        let bufferPosition = 0,
+            i: number, position: number, slotCount: number;
 
         for (i = 0; i < TABLE_SIZE; i++) {
             position = buffer.readUInt32LE(bufferPosition);
@@ -69,15 +66,15 @@ open(callback: (error: Error | null, readable?: typeof this) => void): void {
 get(key: string, offset: GetCallback): void;
 get(key: string, offset: number, callback: GetCallback): void;
 get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
-    var hash = cdbHash(key),
+    const hash = cdbHash(key),
         hashtableIndex = hash & 255,
         hashtable = this.header[hashtableIndex]!,
         position = hashtable.position,
-        slotCount = hashtable.slotCount,
-        slot = (hash >>> 8) % slotCount,
-        trueKeyLength = Buffer.byteLength(key),
-        self = this,
-        hashPosition, recordHash, recordPosition = 0, keyLength = 0, dataLength = 0;
+        slotCount = hashtable.slotCount;
+    let slot = (hash >>> 8) % slotCount;
+    const trueKeyLength = Buffer.byteLength(key),
+        self = this;
+    let hashPosition: number, recordHash: number, recordPosition: number, keyLength: number, dataLength: number;
 
     if (typeof(offset) == 'function') {
         callback = offset;
@@ -93,7 +90,7 @@ get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
     function readSlot(slot: number): void {
         hashPosition = position + ((slot % slotCount) * 8);
 
-        read(self.fd, new Buffer(8), 0, 8, hashPosition, checkHash);
+        read(self.fd, Buffer.alloc(8), 0, 8, hashPosition, checkHash);
     }
 
     function checkHash(err: Error | null, _bytesRead: number, buffer: Buffer): void {
@@ -105,7 +102,7 @@ get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
         recordPosition = buffer.readUInt32LE(4);
 
         if (recordHash == hash) {
-            read(self.fd, new Buffer(8), 0, 8, recordPosition, readKey);
+            read(self.fd, Buffer.alloc(8), 0, 8, recordPosition, readKey);
         } else if (recordHash === 0) {
             callback?.(null, null);
         } else {
@@ -127,7 +124,7 @@ get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
             return readSlot(++slot);
         }
 
-        read(self.fd, new Buffer(keyLength), 0, keyLength,
+        read(self.fd, Buffer.alloc(keyLength), 0, keyLength,
             recordPosition + 8, checkKey);
     }
 
@@ -137,7 +134,7 @@ get(key: string, offset: GetCallback | number, callback?: GetCallback): void {
         }
 
         if (buffer.toString() == key && offset === 0) {
-            read(self.fd, new Buffer(dataLength), 0, dataLength,
+            read(self.fd, Buffer.alloc(dataLength), 0, dataLength,
                 recordPosition + 8 + keyLength, returnData);
         } else if (offset !== 0) {
             (offset as number)--;

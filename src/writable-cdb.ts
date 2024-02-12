@@ -4,8 +4,8 @@ import { cdbHash } from './cdb-util.js';
 
 import type { WriteStream } from 'node:fs';
 
-var HEADER_SIZE = 2048,
-    TABLE_SIZE = 256;
+const HEADER_SIZE = 2048;
+const TABLE_SIZE = 256;
 
 export interface WriteHeader {
     position: number;
@@ -21,23 +21,19 @@ export interface Hashtable {
 export class CDBWritable extends EventEmitter {
 
 file: string;
-filePosition: number;
-header: WriteHeader[];
-hashtables: Hashtable[][];
+filePosition = 0;
+header: WriteHeader[] = Array(TABLE_SIZE);
+hashtables: Hashtable[][] = Array(TABLE_SIZE);
 recordStream!: WriteStream;
 hashtableStream!: WriteStream;
 
 constructor(file: string) {
     super();
     this.file = file;
-    this.filePosition = 0;
-
-    this.header = new Array(TABLE_SIZE);
-    this.hashtables = new Array(TABLE_SIZE);
 };
 
-open(cb: (error: Error | null, writable?: typeof this) => void): void {
-    var recordStream = createWriteStream(this.file, {start: HEADER_SIZE}),
+open(cb?: (error: Error | null, writable?: typeof this) => void): void {
+    const recordStream = createWriteStream(this.file, {start: HEADER_SIZE}),
         callback = cb || function() {},
         self = this;
 
@@ -67,13 +63,13 @@ open(cb: (error: Error | null, writable?: typeof this) => void): void {
 };
 
 put(key: string, data: string, callback: (error?: Error | null) => void): boolean {
-    var keyLength = Buffer.byteLength(key),
+    const keyLength = Buffer.byteLength(key),
         dataLength = Buffer.byteLength(data),
-        record = new Buffer(8 + keyLength + dataLength),
+        record = Buffer.alloc(8 + keyLength + dataLength),
         hash = cdbHash(key),
-        hashtableIndex = hash & 255,
-        hashtable = this.hashtables[hashtableIndex],
-        okayToWrite;
+        hashtableIndex = hash & 255;
+    let hashtable = this.hashtables[hashtableIndex],
+        okayToWrite: boolean;
 
     record.writeUInt32LE(keyLength, 0);
     record.writeUInt32LE(dataLength, 4);
@@ -94,7 +90,7 @@ put(key: string, data: string, callback: (error?: Error | null) => void): boolea
 };
 
 close(cb: (error?: Error) => void): void {
-    var self = this,
+    const self = this,
         callback = cb || function() {};
 
     this.recordStream.on('finish', openStreamForHashtable);
@@ -109,8 +105,8 @@ close(cb: (error?: Error) => void): void {
     }
 
     function writeHashtables(): void {
-        var length = self.hashtables.length,
-            i = 0, hashtable, buffer;
+        const length = self.hashtables.length;
+        let i = 0, hashtable: Hashtable[], buffer: Buffer;
 
         for (i = 0; i < length; i++) {
             hashtable = self.hashtables[i] || [];
@@ -134,7 +130,7 @@ close(cb: (error?: Error) => void): void {
     }
 
     function writeHeader(): void {
-        var buffer = getBufferForHeader(self.header);
+        const buffer = getBufferForHeader(self.header);
 
         writeFile(self.file, buffer, {flag: 'r+'}, finished);
     }
@@ -161,10 +157,10 @@ close(cb: (error?: Error) => void): void {
  * Entries are made up of two 32-bit unsigned integers for a total of 8 bytes.
  */
 function getBufferForHashtable(hashtable: Hashtable[]): Buffer {
-    var length = hashtable.length,
+    const length = hashtable.length,
         slotCount = length * 2,
-        buffer = new Buffer(slotCount * 8),
-        i: number, hash: number, position: number, slot: number, bufferPosition: number;
+        buffer = Buffer.alloc(slotCount * 8);
+    let i: number, hash: number, position: number, slot: number, bufferPosition: number;
 
     // zero out the buffer
     buffer.fill(0);
@@ -196,8 +192,8 @@ function getBufferForHashtable(hashtable: Hashtable[]): Buffer {
  * number of slots and position of the hashtables.
  */
 function getBufferForHeader(headerTable: WriteHeader[]): Buffer {
-    var buffer = new Buffer(HEADER_SIZE),
-        bufferPosition = 0,
+    const buffer = Buffer.alloc(HEADER_SIZE);
+    let bufferPosition = 0,
         i: number, position: number, slots: number;
 
     for (i = 0; i < TABLE_SIZE; i++) {
