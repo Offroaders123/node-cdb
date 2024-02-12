@@ -6,9 +6,9 @@ var HEADER_SIZE = 2048,
 export class readable {
 constructor(/** @type {string} */ file) {
     this.file = file;
-    this.header = new Array(TABLE_SIZE);
+    this.header = /** @type {{ position: number; slotCount: number; }[]} */ (new Array(TABLE_SIZE));
 
-    this.fd = null;
+    this.fd = /** @type {number | null} */ (null);
     this.bookmark = /** @type {((callback: (error: Error | null, buffer?: Buffer | null) => void) => void) | null} */ (null);
 };
 
