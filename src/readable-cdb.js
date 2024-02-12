@@ -1,5 +1,3 @@
-'use strict';
-
 import * as fs from 'fs';
 import * as _  from './cdb-util';
 var HEADER_SIZE = 2048,

@@ -1,5 +1,3 @@
-'use strict';
-
 import * as events from 'events';
 import * as fs     from 'fs';
 import * as _      from './cdb-util';

@@ -1,5 +1,3 @@
-'use strict';
-
 export const cdbHash = function hashKey(/** @type {string} */ key) {
     var hash = 5381,
         length = key.length,
