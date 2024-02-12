@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { createWriteStream, writeFile } from "node:fs";
+import { promisify } from "node:util";
 import { cdbHash } from "./cdb-util.js";
 
 import type { WriteStream } from "node:fs";
@@ -61,6 +62,10 @@ export class CDBWritable extends EventEmitter {
     recordStream.once("error", error);
   }
 
+  async openAsync(): Promise<this> {
+    return (await promisify(this.open.bind(this))())!;
+  }
+
   put(key: string, data: string, callback: (error?: Error | null) => void): boolean {
     const keyLength = Buffer.byteLength(key);
     const dataLength = Buffer.byteLength(data);
@@ -86,6 +91,18 @@ export class CDBWritable extends EventEmitter {
     this.filePosition += record.length;
 
     return okayToWrite;
+  }
+
+  async putAsync(key: string, data: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const okayToWrite: boolean = this.put(key, data, error => {
+        if (error){
+          reject(error);
+        } else {
+          resolve(okayToWrite);
+        }
+      });
+    });
   }
 
   close(cb: (error?: Error) => void): void {
@@ -144,6 +161,10 @@ export class CDBWritable extends EventEmitter {
       self.emit("error", err);
       callback(err);
     }
+  }
+
+  async closeAsync(): Promise<void> {
+    return promisify(this.close.bind(this))();
   }
 }
 

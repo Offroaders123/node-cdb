@@ -1,4 +1,5 @@
 import { open, read, close } from "node:fs";
+import { promisify } from "node:util";
 import { cdbHash } from "./cdb-util.js";
 
 const HEADER_SIZE = 2048;
@@ -9,10 +10,7 @@ export interface ReadHeader {
   slotCount: number;
 }
 
-export interface GetCallback {
-  (error: Error | null, buffer?: null): void;
-  (error: Error | null, buffer: Buffer): void;
-}
+export type GetCallback = (error: Error | null, buffer?: Buffer | null) => void;
 
 export class CDBReadable {
   file: string;
@@ -62,6 +60,10 @@ export class CDBReadable {
 
       callback(null, self);
     }
+  }
+
+  async openAsync(): Promise<this> {
+    return (await promisify(this.open.bind(this))())!;
   }
 
   get(key: string, offset: GetCallback): void;
@@ -158,13 +160,25 @@ export class CDBReadable {
     }
   }
 
+  async getAsync(key: string, offset: number): Promise<Buffer> {
+    return (await promisify(this.get.bind(this, key))(offset))!;
+  }
+
   getNext(callback: GetCallback): void {
     if (this.bookmark) {
       this.bookmark(callback);
     }
   }
 
+  async getNextAsync(): Promise<Buffer> {
+    return (await promisify(this.getNext.bind(this))())!;
+  }
+
   close(callback: (error: Error | null) => void): void {
     close(this.fd, callback);
+  }
+
+  async closeAsync(): Promise<void> {
+    return promisify(this.close.bind(this))();
   }
 }
